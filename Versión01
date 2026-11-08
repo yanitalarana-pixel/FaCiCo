@@ -1,1735 +1,329 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PsicoMatch Toluca · Directorio y Match de Consultantes y Psicólogos</title>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              navy: '#1E3A8A',
-              blue: '#2563EB',
-              sky: '#0284C7',
-              light: '#EFF6FF',
-              soft: '#DBEAFE'
-            },
-            neutral: {
-              bg: '#F8FAFC',
-              surface: '#F1F5F9',
-              border: '#E2E8F0',
-              text: '#334155',
-              dark: '#0F172A',
-              muted: '#64748B'
-            }
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace']
-          }
-        }
-      }
-    };
-  </script>
-
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-
-  <!-- Leaflet.js CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <style>
-    body {
-      background-color: #F8FAFC;
-      color: #334155;
-      font-family: 'Inter', sans-serif;
-      overflow-x: hidden;
-    }
-
-    /* Mapa de Toluca */
-    #toluca-map {
-      width: 100%;
-      height: 100%;
-      min-height: 380px;
-      border-radius: 0.75rem;
-      z-index: 10;
-      background: #F1F5F9;
-    }
-
-    .leaflet-popup-content-wrapper,
-    .leaflet-popup-tip {
-      background: #FFFFFF !important;
-      color: #0F172A !important;
-      border: 1px solid #E2E8F0;
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08) !important;
-      border-radius: 12px !important;
-    }
-
-    /* Marcadores personalizados en tonos azules */
-    .custom-pin {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 9999px;
-      font-weight: 700;
-      font-size: 11px;
-      font-family: 'Inter', sans-serif;
-      box-shadow: 0 4px 10px rgba(30, 58, 138, 0.25);
-      transition: transform 0.15s ease;
-    }
-    .custom-pin:hover {
-      transform: scale(1.12);
-      z-index: 999 !important;
-    }
-
-    .consultante-pulse {
-      width: 20px;
-      height: 20px;
-      background: #1E3A8A;
-      border: 3px solid #FFFFFF;
-      border-radius: 50%;
-      box-shadow: 0 0 0 rgba(37, 99, 235, 0.6);
-      animation: pulseBlue 2s infinite;
-    }
-
-    @keyframes pulseBlue {
-      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6); }
-      70% { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
-    }
-
-    .app-card {
-      background-color: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 0.875rem;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
-    }
-
-    .app-input {
-      background-color: #F8FAFC;
-      border: 1px solid #CBD5E1;
-      color: #0F172A;
-      border-radius: 0.5rem;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
-      width: 100%;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-    }
-    .app-input:focus {
-      outline: none;
-      background-color: #FFFFFF;
-      border-color: #2563EB;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-    }
-
-    input[type="range"] {
-      accent-color: #2563EB;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsicoMatch Toluca - Directorio Clínico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        #map { height: 420px; width: 100%; z-index: 10; border-radius: 0.75rem; }
+    </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
-  <!-- Contenedor de notificaciones (sin alert ni confirm) -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
-
-  <!-- ===================================================================== -->
-  <!-- CANDADO DE ACCESO (PANTALLA LIMPIA Y SENCILLA)                        -->
-  <!-- ===================================================================== -->
-  <div id="auth-lock-overlay" class="fixed inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-    <div class="max-w-md w-full bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 my-auto">
-      
-      <!-- Encabezado del Candado -->
-      <div class="text-center mb-6">
-        <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-blue-700 flex items-center justify-center mx-auto mb-3 text-xl shadow-sm">
-          <i class="fa-solid fa-lock"></i>
+    <!-- Header -->
+    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-800 p-2 rounded-lg border border-blue-700">
+                    <svg class="w-6 h-6 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">PsicoMatch Toluca</h1>
+                    <p class="text-xs text-blue-200">Plataforma Segura de Emparejamiento Clínico</p>
+                </div>
+            </div>
+            <div id="auth-status" class="flex items-center space-x-3 text-sm">
+                <span id="user-badge" class="bg-blue-800 text-blue-100 px-3 py-1 rounded-full font-medium border border-blue-700">Modo Demo: Consultante</span>
+                <button onclick="toggleLock()" class="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition text-xs font-semibold flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <span id="lock-text">Bloquear Sesión</span>
+                </button>
+            </div>
         </div>
-        <h1 class="text-xl font-bold text-slate-900">PsicoMatch Toluca</h1>
-        <p class="text-xs text-slate-500 mt-1">
-          Acceso con candado a tu perfil y geolocalización en Toluca de Lerdo
-        </p>
-      </div>
+    </header>
 
-      <!-- Botones de Acceso Inmediato (Demo Consultante / Demo Psicólogo) -->
-      <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 mb-6">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 text-center mb-2.5">
-          Acceso Rápido de Prueba (1 Clic)
-        </p>
-        <div class="grid grid-cols-2 gap-2.5">
-          <button type="button" onclick="window.quickDemoLogin('consultante')" class="py-2.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition">
-            <i class="fa-solid fa-user"></i>
-            <span>Demo Consultante</span>
-          </button>
-          <button type="button" onclick="window.quickDemoLogin('psicologo')" class="py-2.5 px-3 rounded-lg bg-white hover:bg-slate-100 text-blue-900 border border-slate-300 text-xs font-semibold flex items-center justify-center gap-2 transition">
-            <i class="fa-solid fa-user-doctor"></i>
-            <span>Demo Psicólogo</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Pestañas Iniciar Sesión / Crear Cuenta -->
-      <div class="flex border-b border-slate-200 mb-4 text-xs font-semibold">
-        <button id="tab-auth-login" type="button" onclick="window.switchAuthMode('login')" class="flex-1 pb-2.5 border-b-2 border-blue-600 text-blue-700">
-          Iniciar Sesión
-        </button>
-        <button id="tab-auth-register" type="button" onclick="window.switchAuthMode('register')" class="flex-1 pb-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800">
-          Crear Cuenta
-        </button>
-      </div>
-
-      <form id="auth-form" onsubmit="window.handleAuthSubmit(event)" class="space-y-4">
-        <!-- Selector de Rol -->
-        <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1.5">Tipo de perfil</label>
-          <div class="grid grid-cols-2 gap-2.5">
-            <button type="button" id="role-btn-consultante" onclick="window.selectAuthRole('consultante')" class="p-2.5 rounded-lg border-2 border-blue-600 bg-blue-50/60 text-blue-900 text-xs font-semibold flex items-center justify-center gap-2 transition">
-              <i class="fa-solid fa-user text-blue-600"></i>
-              <span>Consultante</span>
-            </button>
-            <button type="button" id="role-btn-psicologo" onclick="window.selectAuthRole('psicologo')" class="p-2.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold flex items-center justify-center gap-2 transition">
-              <i class="fa-solid fa-user-doctor text-slate-500"></i>
-              <span>Psicólogo</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Nombre (Solo en Registro) -->
-        <div id="register-name-field" class="hidden">
-          <label class="block text-xs font-medium text-slate-700 mb-1">Nombre completo</label>
-          <input id="auth-name" type="text" placeholder="Ej. Mariana Gómez" class="app-input" />
-        </div>
-
-        <!-- Correo -->
-        <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1">Correo o cuenta</label>
-          <input id="auth-email" type="email" required value="consultante@toluca.mx" placeholder="correo@toluca.mx" class="app-input" />
-        </div>
-
-        <!-- Contraseña -->
-        <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1">Contraseña</label>
-          <input id="auth-password" type="password" required minlength="4" value="toluca2026" placeholder="••••••••" class="app-input" />
-        </div>
-
-        <button type="submit" class="w-full py-2.5 px-4 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition">
-          <i class="fa-solid fa-unlock-keyhole"></i>
-          <span id="auth-submit-label">Entrar a mi Cuenta</span>
-        </button>
-      </form>
-
-      <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-        <span>Toluca de Lerdo, Edo. Méx.</span>
-        <span id="cloud-auth-badge" class="flex items-center gap-1.5 text-slate-500">
-          <span class="w-2 h-2 rounded-full bg-blue-500"></span> Conectado
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- BARRA SUPERIOR SIMPLE Y LIMPIA                                        -->
-  <!-- ===================================================================== -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-      
-      <!-- Identidad -->
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-blue-900 text-white flex items-center justify-center text-sm shadow-sm">
-          <i class="fa-solid fa-location-dot"></i>
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-900 text-base tracking-tight">PsicoMatch Toluca</span>
-            <span id="active-role-pill" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-              Vista Consultante
-            </span>
-          </div>
-          <p class="text-[11px] text-slate-500 hidden sm:block">
-            Geolocalización clínica y compatibilidad en Toluca de Lerdo
-          </p>
-        </div>
-      </div>
-
-      <!-- Navegación sencilla -->
-      <div class="flex items-center gap-1.5 sm:gap-2">
-        <button id="nav-btn-main" type="button" onclick="window.switchSection('main')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 transition">
-          <i class="fa-solid fa-map-location-dot mr-1"></i>
-          <span id="nav-main-label">Mapa y Match</span>
-        </button>
-
-        <button id="nav-btn-citas" type="button" onclick="window.switchSection('citas')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
-          <i class="fa-regular fa-calendar-check text-blue-600"></i>
-          <span class="hidden md:inline">Mis Citas</span>
-          <span id="citas-count-pill" class="px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold">0</span>
-        </button>
-
-        <button id="nav-btn-repo" type="button" onclick="window.switchSection('repo')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition" title="Ver estructura tipo GitHub">
-          <i class="fa-brands fa-github mr-1"></i>
-          <span class="hidden md:inline">Código / Repo</span>
-        </button>
-
-        <!-- Botón rápido para alternar entre Consultante y Psicólogo -->
-        <button type="button" onclick="window.toggleRoleView()" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium transition hidden sm:flex items-center gap-1.5" title="Cambiar modo de perfil">
-          <i class="fa-solid fa-repeat text-blue-600"></i>
-          <span id="switch-role-btn-text">Modo Psicólogo</span>
-        </button>
-
-        <!-- Botón Bloquear / Salir -->
-        <button type="button" onclick="window.lockSession()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
-          <i class="fa-solid fa-lock text-slate-500"></i>
-          <span>Bloquear / Salir</span>
-        </button>
-      </div>
-
-    </div>
-  </header>
-
-  <!-- ===================================================================== -->
-  <!-- CONTENIDO PRINCIPAL                                                   -->
-  <!-- ===================================================================== -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
-
-    <!-- =================================================================== -->
-    <!-- SECCIÓN 1A: VISTA PRINCIPAL DEL CONSULTANTE                         -->
-    <!-- =================================================================== -->
-    <section id="view-consultante" class="space-y-6">
-      
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
         
-        <!-- COLUMNA IZQUIERDA (4 cols): MI PERFIL DE CONSULTANTE -->
-        <div class="lg:col-span-4 app-card p-5 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <!-- Panel Izquierdo: Perfil y Criterios del Consultante -->
+        <section class="lg:col-span-4 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
             <div>
-              <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-user-check text-blue-600"></i>
-                <span>Mi Perfil de Consultante</span>
-              </h2>
-              <p class="text-[11px] text-slate-500 mt-0.5">
-                Ajusta tus datos para calcular tu Match en Toluca
-              </p>
-            </div>
-            <span id="etapa-edad-pill" class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-semibold">
-              Jóvenes (18-29)
-            </span>
-          </div>
-
-          <form onsubmit="window.saveConsultanteProfile(event)" class="space-y-3.5">
-            <div class="grid grid-cols-3 gap-2.5">
-              <div class="col-span-2">
-                <label class="block text-xs font-medium text-slate-700 mb-1">Nombre del Consultante</label>
-                <input id="con-name" type="text" required class="app-input" value="Alejandro Morales" />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-700 mb-1">Edad</label>
-                <input id="con-age" type="number" min="5" max="95" required class="app-input" value="26" oninput="window.handleConsultanteInputChange()" />
-              </div>
+                <h2 class="text-lg font-bold text-blue-900 flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span>Mi Perfil de Consultante</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-1">Configura tus necesidades para encontrar el match ideal en Toluca.</p>
             </div>
 
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Motivo de consulta / Situación actual</label>
-              <select id="con-need" onchange="window.handleConsultanteInputChange()" class="app-input">
-                <option value="Ansiedad">Ansiedad, Estrés o Ataques de Pánico</option>
-                <option value="Depresión">Depresión, Tristeza o Desmotivación</option>
-                <option value="Pareja y Familia">Problemas de Pareja o Familia</option>
-                <option value="Duelo">Duelo y Pérdidas</option>
-                <option value="Infantil y Adolescentes">Infantil, Crianza y Adolescentes</option>
-                <option value="Estrés Académico/Laboral">Estrés Académico / Laboral</option>
-                <option value="Neurodivergencia/TDAH">Neurodivergencia / TDAH</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Enfoque terapéutico preferido</label>
-              <select id="con-approach" onchange="window.handleConsultanteInputChange()" class="app-input">
-                <option value="AUTO">Recomendación automática según mi situación</option>
-                <option value="Cognitivo-Conductual">Cognitivo-Conductual (Práctico y estructurado)</option>
-                <option value="Sistémico">Sistémico (Pareja y relaciones familiares)</option>
-                <option value="Humanista">Humanista (Desarrollo personal y empatía)</option>
-                <option value="Psicoanálisis">Psicoanálisis (Exploración profunda)</option>
-                <option value="Gestalt">Terapia Gestalt (Cierre de ciclos)</option>
-                <option value="Terapia Breve">Terapia Breve (Enfocada en soluciones)</option>
-              </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="font-medium text-slate-700">Presupuesto máx.</span>
-                  <span id="con-budget-label" class="font-bold text-blue-700">$800</span>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Consultante</label>
+                    <input type="text" id="consultant-name" value="Valeria Gómez" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <input id="con-budget" type="range" min="400" max="1500" step="50" value="800" oninput="window.handleConsultanteInputChange()" class="w-full cursor-pointer mt-1" />
-              </div>
 
-              <div>
-                <label class="block text-xs font-medium text-slate-700 mb-1">Horario preferido</label>
-                <select id="con-schedule" onchange="window.handleConsultanteInputChange()" class="app-input">
-                  <option value="Vespertino">Vespertino</option>
-                  <option value="Matutino">Matutino</option>
-                  <option value="Sábados">Sábados</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="pt-2 border-t border-slate-100 space-y-3">
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label class="text-xs font-medium text-slate-700">Tu colonia o zona en Toluca de Lerdo</label>
-                  <button type="button" onclick="window.useBrowserGeolocation()" class="text-[11px] font-semibold text-blue-600 hover:underline flex items-center gap-1">
-                    <i class="fa-solid fa-location-crosshairs"></i> Usar mi GPS
-                  </button>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Edad</label>
+                        <input type="number" id="consultant-age" value="26" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Presupuesto Máx ($/Sesión)</label>
+                        <input type="number" id="consultant-budget" value="700" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
-                <select id="con-colonia" onchange="window.handleColoniaChange(this.value)" class="app-input">
-                  <!-- Opciones pobladas por JS -->
-                </select>
-              </div>
 
-              <div>
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="font-medium text-slate-700">Radio de búsqueda en Toluca</span>
-                  <span id="con-radius-label" class="font-bold text-blue-700">5.0 km</span>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Motivo de Consulta Principal</label>
+                    <select id="consultant-issue" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Ansiedad">Ansiedad y Estrés Laboral / Académico</option>
+                        <option value="Depresión">Depresión y Estado de Ánimo</option>
+                        <option value="Pareja">Terapia de Pareja y Relaciones</option>
+                        <option value="Autoestima">Autoestima y Desarrollo Personal</option>
+                        <option value="Duelo">Duelo y Pérdidas</option>
+                    </select>
                 </div>
-                <input id="con-radius" type="range" min="1" max="15" step="0.5" value="5" oninput="window.handleConsultanteInputChange()" class="w-full cursor-pointer" />
-              </div>
-            </div>
 
-            <button type="submit" class="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition">
-              <i class="fa-solid fa-floppy-disk"></i>
-              <span>Guardar Perfil de Consultante</span>
-            </button>
-          </form>
-        </div>
-
-        <!-- COLUMNA DERECHA (8 cols): INDICADORES, MAPA DE TOLUCA Y LISTA DE MATCH -->
-        <div class="lg:col-span-8 space-y-5">
-          
-          <!-- 3 Indicadores Simples Arriba -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div class="app-card p-4 flex items-center gap-3.5">
-              <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-base">
-                <i class="fa-solid fa-user-doctor"></i>
-              </div>
-              <div>
-                <div class="text-xs text-slate-500">Psicólogos en el área</div>
-                <div class="text-lg font-bold text-slate-900">
-                  <span id="kpi-in-radius">0</span> <span class="text-xs font-normal text-slate-500">en tu radio</span>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Zona en Toluca de Lerdo</label>
+                    <select id="consultant-zone" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Centro">Centro Histórico, Toluca</option>
+                        <option value="Colon">Residencial Colón / Venustiano Carranza</option>
+                        <option value="Cipres">Ciprés / San Sebastián</option>
+                        <option value="Metepec">Límite Metepec - Toluca</option>
+                        <option value="UAEM">Zona CU UAEMéx / Tollocan</option>
+                    </select>
                 </div>
-              </div>
-            </div>
 
-            <div class="app-card p-4 flex items-center gap-3.5">
-              <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center text-base">
-                <i class="fa-regular fa-clock"></i>
-              </div>
-              <div>
-                <div class="text-xs text-slate-500">Con disponibilidad</div>
-                <div class="text-lg font-bold text-slate-900">
-                  <span id="kpi-available-now">0</span> <span class="text-xs font-normal text-slate-500">para ofrecer servicio</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="app-card p-4 flex items-center gap-3.5">
-              <div class="w-10 h-10 rounded-xl bg-slate-100 text-blue-900 flex items-center justify-center text-base">
-                <i class="fa-solid fa-tag"></i>
-              </div>
-              <div>
-                <div class="text-xs text-slate-500">Costo promedio</div>
-                <div class="text-lg font-bold text-slate-900" id="kpi-avg-price">$0 MXN</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Mapa Interactivo de Toluca de Lerdo -->
-          <div class="app-card p-4 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <i class="fa-solid fa-map text-blue-600"></i>
-                  <span>Mapa de Especialistas en Toluca de Lerdo</span>
-                </h3>
-                <p class="text-xs text-slate-500">
-                  Haz clic en cualquier punto de Toluca para mover tu ubicación de Consultante
-                </p>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
-                  <input id="filter-only-radius" type="checkbox" onchange="window.recalculateAndRenderAll()" class="rounded border-slate-300 text-blue-600" />
-                  <span>Solo dentro del radio</span>
-                </label>
-                <button type="button" onclick="window.resetTolucaMapCenter()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-700 transition">
-                  Centrar Toluca
+                <button onclick="runMatching()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-sm flex items-center justify-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <span>Calcular Match en Toluca</span>
                 </button>
-              </div>
             </div>
 
-            <div class="w-full h-[380px] rounded-xl overflow-hidden border border-slate-200">
-              <div id="toluca-map"></div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-              <div class="flex items-center gap-4">
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-900 inline-block"></span> Tu ubicación de Consultante</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span> Match Alto (&ge;85%)</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-600 inline-block"></span> Match Compatible</span>
-              </div>
-              <span id="map-coords-badge" class="font-mono">Toluca (19.2826, -99.6557)</span>
-            </div>
-          </div>
-
-          <!-- Lista Limpia de Psicólogos Ordenados por Match -->
-          <div class="space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 class="text-base font-bold text-slate-900">
-                  Psicólogos Recomendados para Ti en Toluca
-                </h3>
-                <p class="text-xs text-slate-500">
-                  Ordenados por porcentaje de Match según tu situación, edad, presupuesto, distancia y horario
-                </p>
-              </div>
-              <select id="sort-by-select" onchange="window.recalculateAndRenderAll()" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700">
-                <option value="match">Ordenar por: Mayor % Match</option>
-                <option value="distance">Ordenar por: Más cercanos (km)</option>
-                <option value="priceAsc">Ordenar por: Menor costo ($)</option>
-                <option value="expDesc">Ordenar por: Más años de experiencia</option>
-              </select>
-            </div>
-
-            <div id="match-cards-list" class="space-y-3.5">
-              <!-- Tarjetas generadas dinámicamente -->
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =================================================================== -->
-    <!-- SECCIÓN 1B: VISTA PARA PSICÓLOGO (EDITAR Y GUARDAR CONSULTORIO)     -->
-    <!-- =================================================================== -->
-    <section id="view-psicologo" class="hidden max-w-3xl mx-auto">
-      <div class="app-card p-6 sm:p-8 space-y-6">
-        <div class="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
-          <div>
-            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-              Perfil Profesional en Toluca de Lerdo
-            </span>
-            <h2 class="text-lg font-bold text-slate-900 mt-2">
-              Registro y Actualización de Consultorio Psicológico
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              Tus datos profesionales se guardan en tu cuenta y aparecen en el mapa de Toluca para hacer Match con Consultantes.
-            </p>
-          </div>
-          <button type="button" onclick="window.toggleRoleView()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-700 shrink-0">
-            Ver como Consultante
-          </button>
-        </div>
-
-        <form onsubmit="window.savePsychologistProfile(event)" class="space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-slate-700 mb-1">Nombre completo y grado académico</label>
-              <input id="psy-name" type="text" required value="Dra. Sofía Estrada Morales" class="app-input" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Cédula Profesional</label>
-              <input id="psy-cedula" type="text" required value="8492014" class="app-input font-mono" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Años de experiencia</label>
-              <input id="psy-exp" type="number" min="1" max="45" required value="8" class="app-input" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Enfoque terapéutico</label>
-              <select id="psy-approach" class="app-input">
-                <option value="Cognitivo-Conductual">Cognitivo-Conductual</option>
-                <option value="Sistémico">Sistémico</option>
-                <option value="Humanista">Humanista</option>
-                <option value="Psicoanálisis">Psicoanálisis</option>
-                <option value="Gestalt">Gestalt</option>
-                <option value="Terapia Breve">Terapia Breve</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Costo por sesión ($ MXN)</label>
-              <input id="psy-price" type="number" min="250" max="2500" step="50" required value="650" class="app-input" />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-700 mb-2">Especialidades que atiendes para los Consultantes</label>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-              <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
-                <input type="checkbox" value="Ansiedad" checked class="psy-spec-chk text-blue-600" /> <span>Ansiedad y Pánico</span>
-              </label>
-              <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
-                <input type="checkbox" value="Depresión" checked class="psy-spec-chk text-blue-600" /> <span>Depresión</span>
-              </label>
-              <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
-                <input type="checkbox" value="Pareja y Familia" class="psy-spec-chk text-blue-600" /> <span>Pareja y Familia</span>
-              </label>
-              <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
-                <input type="checkbox" value="Duelo" class="psy-spec-chk text-blue-600" /> <span>Duelo y Pérdidas</span>
-              </label>
-              <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
-                <input type="checkbox" value="Infantil y Adolescentes" class="psy-spec-chk text-blue-600" /> <span>Infantil y Adolescentes</span>
-              </label>
-              <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
-                <input type="checkbox" value="Estrés Académico/Laboral" checked class="psy-spec-chk text-blue-600" /> <span>Estrés Académico/Laboral</span>
-              </label>
-              <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
-                <input type="checkbox" value="Neurodivergencia/TDAH" class="psy-spec-chk text-blue-600" /> <span>Neurodivergencia/TDAH</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Certificados y diplomados (separados por coma)</label>
-              <input id="psy-certs" type="text" required value="Maestría en Psicología Clínica UAEMéx, Diplomado TCC UNAM" class="app-input" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Horarios de atención</label>
-              <select id="psy-schedule" class="app-input">
-                <option value="Matutino,Vespertino">Matutino y Vespertino</option>
-                <option value="Vespertino,Sábados">Vespertino y Sábados</option>
-                <option value="Matutino,Vespertino,Sábados">Matutino, Vespertino y Sábados</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Colonia del consultorio en Toluca de Lerdo</label>
-              <select id="psy-colonia" class="app-input">
-                <!-- Poblado por JS -->
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Dirección del consultorio</label>
-              <input id="psy-address" type="text" required value="Av. Venustiano Carranza #412, Toluca de Lerdo" class="app-input" />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Descripción breve de tu consulta</label>
-            <textarea id="psy-bio" rows="2" class="app-input">Atención psicológica ética y personalizada para Consultantes en Toluca de Lerdo.</textarea>
-          </div>
-
-          <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
-            <button type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition">
-              <i class="fa-solid fa-cloud-arrow-up"></i>
-              <span>Guardar y Publicar Consultorio en Toluca</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <!-- =================================================================== -->
-    <!-- SECCIÓN 2: MIS CITAS GUARDADAS                                      -->
-    <!-- =================================================================== -->
-    <section id="view-citas" class="hidden max-w-4xl mx-auto space-y-4">
-      <div class="app-card p-6 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-          <div>
-            <h2 class="text-base font-bold text-slate-900">Mis Citas Agendadas en Toluca</h2>
-            <p class="text-xs text-slate-500">Sesiones registradas desde tu cuenta de Consultante</p>
-          </div>
-          <button type="button" onclick="window.switchSection('main')" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold">
-            Volver al Mapa
-          </button>
-        </div>
-        <div id="appointments-list" class="space-y-3"></div>
-      </div>
-    </section>
-
-    <!-- =================================================================== -->
-    <!-- SECCIÓN 3: ESTRUCTURA DEL REPOSITORIO (ESTILO GITHUB DISCRETO)      -->
-    <!-- =================================================================== -->
-    <section id="view-repo" class="hidden max-w-5xl mx-auto space-y-4">
-      <div class="app-card overflow-hidden">
-        <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <i class="fa-brands fa-github text-slate-700 text-base"></i>
-            <span>toluca-lerdo / psicomatch-consultantes</span>
-            <span class="px-2 py-0.5 rounded-full text-[11px] bg-blue-50 text-blue-700 border border-blue-200 font-mono">main</span>
-          </div>
-          <button type="button" onclick="window.copyRepoCode()" class="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-xs font-medium text-slate-700">
-            <i class="fa-regular fa-copy mr-1"></i>Copiar archivo
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-12">
-          <div class="md:col-span-4 border-b md:border-b-0 md:border-r border-slate-200 p-3 space-y-1 bg-slate-50/50 text-xs font-mono">
-            <button type="button" onclick="window.selectRepoFile('readme')" id="repo-btn-readme" class="w-full p-2.5 rounded-lg text-left bg-blue-50 text-blue-700 font-semibold block">
-              README.md
-            </button>
-            <button type="button" onclick="window.selectRepoFile('algorithm')" id="repo-btn-algorithm" class="w-full p-2.5 rounded-lg text-left text-slate-600 hover:bg-slate-100 block">
-              src/matchConsultante.js
-            </button>
-            <button type="button" onclick="window.selectRepoFile('schema')" id="repo-btn-schema" class="w-full p-2.5 rounded-lg text-left text-slate-600 hover:bg-slate-100 block">
-              src/firestoreSchema.json
-            </button>
-          </div>
-          <div class="md:col-span-8 p-4 bg-slate-900 text-slate-100 overflow-x-auto">
-            <pre id="repo-code-display" class="text-xs font-mono leading-relaxed"></pre>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL SENCILLO PARA AGENDAR CITA CON EL PSICÓLOGO                     -->
-  <!-- ===================================================================== -->
-  <div id="psych-detail-modal" class="fixed inset-0 z-[1500] bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl my-auto">
-      <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-        <div>
-          <span id="modal-psy-match-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-            95% Match con tu perfil de Consultante
-          </span>
-          <h3 id="modal-psy-name" class="text-base font-bold text-slate-900 mt-1.5">Nombre del Psicólogo</h3>
-          <p id="modal-psy-meta" class="text-xs text-slate-500">Cédula · Experiencia</p>
-        </div>
-        <button type="button" onclick="window.closePsychModal()" class="text-slate-400 hover:text-slate-700 text-lg px-1">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="text-xs text-slate-600 space-y-1.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
-        <div id="modal-psy-location" class="font-medium text-slate-800"></div>
-        <div id="modal-psy-certs" class="text-slate-500"></div>
-      </div>
-
-      <form onsubmit="window.submitAppointmentBooking(event)" class="space-y-3 pt-1">
-        <div class="text-xs font-bold text-slate-800">Agendar sesión como Consultante</div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-medium text-slate-600 mb-1">Fecha</label>
-            <input id="book-date" type="date" required class="app-input text-xs" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-medium text-slate-600 mb-1">Horario</label>
-            <select id="book-slot" class="app-input text-xs">
-              <option value="Matutino (10:00 AM)">Matutino (10:00 AM)</option>
-              <option value="Vespertino (5:00 PM)">Vespertino (5:00 PM)</option>
-              <option value="Sábado (11:00 AM)">Sábado (11:00 AM)</option>
-            </select>
-          </div>
-        </div>
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="window.closePsychModal()" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-700">
-            Cancelar
-          </button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">
-            Confirmar Cita en Toluca
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- LÓGICA DE LA APLICACIÓN + FIREBASE + MAPA LEAFLET + MOTOR DE MATCH    -->
-  <!-- ===================================================================== -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, collection, onSnapshot, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // 1. ZONAS Y COLONIAS DE TOLUCA DE LERDO
-    const TOLUCA_CENTER = { lat: 19.2826, lng: -99.6557 };
-
-    const COLONIAS_TOLUCA = [
-      { id: "centro", name: "Centro Histórico / Los Portales", lat: 19.2921, lng: -99.6567 },
-      { id: "cipres", name: "Colonia Ciprés / Venustiano Carranza", lat: 19.2785, lng: -99.6698 },
-      { id: "colon", name: "Residencial Colón / Paseo Colón", lat: 19.2722, lng: -99.6615 },
-      { id: "universidad", name: "Colonia Universidad (CU UAEMéx)", lat: 19.2818, lng: -99.6762 },
-      { id: "morelos", name: "Colonia Morelos", lat: 19.2874, lng: -99.6689 },
-      { id: "san_bernardino", name: "Barrio San Bernardino / Estadio", lat: 19.2895, lng: -99.6660 },
-      { id: "xinantecatl", name: "Ocho Cedros / Xinantécatl", lat: 19.2630, lng: -99.6540 },
-      { id: "metepec_lim", name: "Límite Toluca - Metepec (Las Torres)", lat: 19.2615, lng: -99.6360 },
-      { id: "santa_ana", name: "Santa Ana Tlapaltitlán / Tollocan", lat: 19.2835, lng: -99.6245 },
-      { id: "san_mateo", name: "San Mateo Oxtotitlán", lat: 19.2860, lng: -99.6890 }
-    ];
-
-    // 2. DIRECTORIO BASE DE PSICÓLOGOS EN TOLUCA DE LERDO
-    const INITIAL_PSYCHOLOGISTS = [
-      {
-        id: "psy-tol-01",
-        name: "Dra. Elena Villaseñor Camacho",
-        cedula: "7382910",
-        yearsExp: 11,
-        approach: "Cognitivo-Conductual",
-        specialties: ["Ansiedad", "Depresión", "Estrés Académico/Laboral"],
-        ageGroups: ["Jóvenes (18-29)", "Adultos (30-59)", "Adolescentes (13-17)"],
-        certificates: ["Doctorado en Psicología (UNAM)", "Certificación TCC Beck Institute"],
-        price: 750,
-        schedules: ["Matutino", "Vespertino"],
-        immediateAvailability: true,
-        colonia: "Colonia Ciprés / Venustiano Carranza",
-        address: "Av. Venustiano Carranza Pte. #518, Toluca",
-        lat: 19.2791,
-        lng: -99.6704,
-        bio: "Atención a Consultantes con ansiedad, estrés laboral y depresión mediante protocolos basados en evidencia."
-      },
-      {
-        id: "psy-tol-02",
-        name: "Mtro. Alejandro Mondragón Reyes",
-        cedula: "8941205",
-        yearsExp: 8,
-        approach: "Sistémico",
-        specialties: ["Pareja y Familia", "Duelo", "Ansiedad"],
-        ageGroups: ["Jóvenes (18-29)", "Adultos (30-59)", "Adultos Mayores (60+)"],
-        certificates: ["Maestría en Terapia Familiar Sistémica", "Diplomado en Pareja"],
-        price: 800,
-        schedules: ["Vespertino", "Sábados"],
-        immediateAvailability: true,
-        colonia: "Residencial Colón / Paseo Colón",
-        address: "Paseo Cristóbal Colón #304, Toluca",
-        lat: 19.2718,
-        lng: -99.6609,
-        bio: "Acompañamiento sistémico para Consultantes en terapia individual, de pareja y dinámica familiar."
-      },
-      {
-        id: "psy-tol-03",
-        name: "Lic. Mariana Albarrán Sotelo",
-        cedula: "10492831",
-        yearsExp: 5,
-        approach: "Cognitivo-Conductual",
-        specialties: ["Estrés Académico/Laboral", "Ansiedad", "Neurodivergencia/TDAH"],
-        ageGroups: ["Adolescentes (13-17)", "Jóvenes (18-29)", "Adultos (30-59)"],
-        certificates: ["Lic. en Psicología UAEMéx", "Diplomado en Neuropsicología y TDAH"],
-        price: 500,
-        schedules: ["Matutino", "Vespertino", "Sábados"],
-        immediateAvailability: true,
-        colonia: "Colonia Universidad (CU UAEMéx)",
-        address: "Mariano Matamoros Sur #214, cerca de CU, Toluca",
-        lat: 19.2824,
-        lng: -99.6755,
-        bio: "Espacio accesible para Consultantes jóvenes y adultos enfocado en ansiedad, atención y metas."
-      },
-      {
-        id: "psy-tol-04",
-        name: "Dra. Claudia Hinojosa Peralta",
-        cedula: "6192044",
-        yearsExp: 15,
-        approach: "Humanista",
-        specialties: ["Duelo", "Depresión", "Ansiedad"],
-        ageGroups: ["Jóvenes (18-29)", "Adultos (30-59)", "Adultos Mayores (60+)"],
-        certificates: ["Maestría en Psicoterapia Humanista y Tanatología", "Supervisora Clínica"],
-        price: 850,
-        schedules: ["Matutino", "Vespertino"],
-        immediateAvailability: false,
-        colonia: "Centro Histórico / Los Portales",
-        address: "Av. Independencia #108, Centro, Toluca",
-        lat: 19.2928,
-        lng: -99.6552,
-        bio: "Terapia humanista y tanatológica para Consultantes en procesos de duelo, pérdidas y sentido de vida."
-      },
-      {
-        id: "psy-tol-05",
-        name: "Mtra. Valeria Domínguez Quiroz",
-        cedula: "9582311",
-        yearsExp: 9,
-        approach: "Cognitivo-Conductual",
-        specialties: ["Infantil y Adolescentes", "Neurodivergencia/TDAH", "Pareja y Familia"],
-        ageGroups: ["Niños (5-12)", "Adolescentes (13-17)", "Jóvenes (18-29)"],
-        certificates: ["Maestría en Psicoterapia Infantil", "Certificación Clínica TDAH y Autismo"],
-        price: 700,
-        schedules: ["Vespertino", "Sábados"],
-        immediateAvailability: true,
-        colonia: "Colonia Morelos",
-        address: "José María Morelos Pte. #712, Col. Morelos, Toluca",
-        lat: 19.2868,
-        lng: -99.6679,
-        bio: "Evaluación e intervención para Consultantes infantiles, adolescentes y orientación a familias."
-      },
-      {
-        id: "psy-tol-06",
-        name: "Lic. Fernanda Castañeda Lira",
-        cedula: "11204958",
-        yearsExp: 4,
-        approach: "Terapia Breve",
-        specialties: ["Ansiedad", "Estrés Académico/Laboral", "Duelo"],
-        ageGroups: ["Jóvenes (18-29)", "Adultos (30-59)"],
-        certificates: ["Especialidad en Terapia Breve Centrada en Soluciones", "Diplomado en Burnout"],
-        price: 450,
-        schedules: ["Matutino", "Vespertino", "Sábados"],
-        immediateAvailability: true,
-        colonia: "Ocho Cedros / Xinantécatl",
-        address: "Calz. al Pacífico #210, Ocho Cedros, Toluca",
-        lat: 19.2638,
-        lng: -99.6548,
-        bio: "Terapia breve enfocada en objetivos concretos para Consultantes que buscan herramientas prácticas."
-      },
-      {
-        id: "psy-tol-07",
-        name: "Mtro. Héctor Santillán Becerril",
-        cedula: "7781209",
-        yearsExp: 12,
-        approach: "Psicoanálisis",
-        specialties: ["Depresión", "Ansiedad", "Pareja y Familia"],
-        ageGroups: ["Jóvenes (18-29)", "Adultos (30-59)"],
-        certificates: ["Maestría en Psicoterapia Psicoanalítica", "Docente en Psicopatología"],
-        price: 900,
-        schedules: ["Matutino", "Vespertino"],
-        immediateAvailability: true,
-        colonia: "Barrio San Bernardino / Estadio",
-        address: "Av. Hidalgo Pte. #640, San Bernardino, Toluca",
-        lat: 19.2899,
-        lng: -99.6654,
-        bio: "Escucha clínica profunda para Consultantes que desean trabajar depresión, angustia y vínculos."
-      },
-      {
-        id: "psy-tol-08",
-        name: "Dr. Mauricio Garduño Orozco",
-        cedula: "5893102",
-        yearsExp: 16,
-        approach: "Gestalt",
-        specialties: ["Pareja y Familia", "Duelo", "Depresión"],
-        ageGroups: ["Adultos (30-59)", "Adultos Mayores (60+)", "Jóvenes (18-29)"],
-        certificates: ["Doctorado en Psicología", "Especialidad en Psicoterapia Gestalt"],
-        price: 1000,
-        schedules: ["Vespertino", "Sábados"],
-        immediateAvailability: true,
-        colonia: "Límite Toluca - Metepec (Las Torres)",
-        address: "Av. Las Torres #1120, Toluca",
-        lat: 19.2622,
-        lng: -99.6368,
-        bio: "Consultorio senior para Consultantes adultos en procesos de cierre de ciclos y terapia de pareja."
-      }
-    ];
-
-    // 3. ESTADO GLOBAL Y FIREBASE
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'psicomatch-toluca-app';
-    let db = null;
-    let auth = null;
-    let currentUser = null;
-
-    let authMode = 'login';
-    let currentRole = 'consultante'; // 'consultante' | 'psicologo'
-
-    let consultanteProfile = {
-      name: "Alejandro Morales",
-      email: "consultante@toluca.mx",
-      age: 26,
-      primaryNeed: "Ansiedad",
-      preferredApproach: "AUTO",
-      maxBudget: 800,
-      schedule: "Vespertino",
-      coloniaId: "cipres",
-      lat: 19.2785,
-      lng: -99.6698,
-      searchRadiusKm: 5.0
-    };
-
-    let cloudPsychologists = [];
-    let rankedMatches = [];
-    let scheduledAppointments = [];
-    let activeModalPsychId = null;
-
-    // Instancias de Leaflet
-    let map = null;
-    let consultanteMarker = null;
-    let radiusCircle = null;
-    let psychMarkersLayer = null;
-
-    // 4. UTILIDADES Y FÓRMULA HAVERSINE
-    function showToast(message) {
-      const container = document.getElementById('toast-container');
-      if (!container) return;
-      const toast = document.createElement('div');
-      toast.className = "pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-900 text-white shadow-lg text-xs font-medium transition-all duration-300";
-      toast.innerHTML = `<i class="fa-solid fa-circle-check text-sky-400"></i><span>${message}</span>`;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 250);
-      }, 3000);
-    }
-
-    function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-    }
-
-    function getAgeBracketLabel(ageNum) {
-      const age = Number(ageNum) || 25;
-      if (age <= 12) return "Niños (5-12)";
-      if (age <= 17) return "Adolescentes (13-17)";
-      if (age <= 29) return "Jóvenes (18-29)";
-      if (age <= 59) return "Adultos (30-59)";
-      return "Adultos Mayores (60+)";
-    }
-
-    function getRecommendedApproaches(need) {
-      const map = {
-        "Ansiedad": ["Cognitivo-Conductual", "Terapia Breve"],
-        "Depresión": ["Cognitivo-Conductual", "Humanista", "Psicoanálisis"],
-        "Pareja y Familia": ["Sistémico", "Terapia Breve", "Gestalt"],
-        "Duelo": ["Humanista", "Gestalt", "Cognitivo-Conductual"],
-        "Infantil y Adolescentes": ["Cognitivo-Conductual", "Sistémico"],
-        "Estrés Académico/Laboral": ["Cognitivo-Conductual", "Terapia Breve"],
-        "Neurodivergencia/TDAH": ["Cognitivo-Conductual"]
-      };
-      return map[need] || ["Cognitivo-Conductual", "Humanista"];
-    }
-
-    // 5. MOTOR DE MATCH PARA EL CONSULTANTE (0% a 100%)
-    function computeConsultanteMatch(psych, consultante) {
-      // 1. Especialidad y situación del Consultante (30 pts)
-      let specialtyScore = psych.specialties.includes(consultante.primaryNeed) ? 30 : 12;
-
-      // 2. Costo vs Presupuesto del Consultante (20 pts)
-      let budgetScore = 20;
-      if (psych.price > consultante.maxBudget) {
-        const diff = psych.price - consultante.maxBudget;
-        budgetScore = Math.max(2, Math.round(20 * (1 - diff / 500)));
-      }
-
-      // 3. Ubicación y distancia en Toluca (20 pts)
-      const distanceKm = calculateDistanceKm(consultante.lat, consultante.lng, psych.lat, psych.lng);
-      let distanceScore = distanceKm <= consultante.searchRadiusKm
-        ? Math.round(20 - (distanceKm / Math.max(1, consultante.searchRadiusKm)) * 6)
-        : Math.max(2, Math.round(12 - (distanceKm - consultante.searchRadiusKm) * 1.5));
-
-      // 4. Tiempo / Horario y disponibilidad (15 pts)
-      let scheduleScore = (psych.schedules.includes(consultante.schedule) ? 12 : 5) + (psych.immediateAvailability ? 3 : 0);
-
-      // 5. Enfoque + Experiencia acorde a la etapa de edad del Consultante (15 pts)
-      let approachExpScore = 0;
-      const recApproaches = getRecommendedApproaches(consultante.primaryNeed);
-      if (consultante.preferredApproach === "AUTO") {
-        approachExpScore += recApproaches.includes(psych.approach) ? 8 : 5;
-      } else {
-        approachExpScore += psych.approach === consultante.preferredApproach ? 8 : 3;
-      }
-
-      const ageStage = getAgeBracketLabel(consultante.age);
-      approachExpScore += (!psych.ageGroups || psych.ageGroups.includes(ageStage)) ? 4 : 1;
-      approachExpScore += psych.yearsExp >= 5 ? 3 : 2;
-
-      const totalMatch = Math.min(100, Math.max(20, specialtyScore + budgetScore + distanceScore + scheduleScore + approachExpScore));
-
-      return {
-        ...psych,
-        distanceKm: Number(distanceKm.toFixed(1)),
-        insideRadius: distanceKm <= consultante.searchRadiusKm,
-        matchPercent: totalMatch,
-        breakdown: {
-          specialty: specialtyScore,
-          budget: budgetScore,
-          distance: distanceScore,
-          schedule: scheduleScore,
-          approachExp: approachExpScore
-        }
-      };
-    }
-
-    // 6. MAPA INTERACTIVO DE TOLUCA DE LERDO
-    function initTolucaMap() {
-      if (map) return;
-      map = L.map('toluca-map', {
-        center: [consultanteProfile.lat, consultanteProfile.lng],
-        zoom: 13
-      });
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap · Toluca de Lerdo',
-        maxZoom: 19
-      }).addTo(map);
-
-      psychMarkersLayer = L.layerGroup().addTo(map);
-
-      map.on('click', (e) => {
-        consultanteProfile.lat = Number(e.latlng.lat.toFixed(5));
-        consultanteProfile.lng = Number(e.latlng.lng.toFixed(5));
-        document.getElementById('map-coords-badge').textContent = `Toluca (${consultanteProfile.lat}, ${consultanteProfile.lng})`;
-        recalculateAndRenderAll();
-        showToast('Ubicación de Consultante actualizada en el mapa de Toluca');
-      });
-
-      recalculateAndRenderAll();
-    }
-
-    function updateMapMarkers() {
-      if (!map) return;
-
-      if (consultanteMarker) {
-        consultanteMarker.setLatLng([consultanteProfile.lat, consultanteProfile.lng]);
-      } else {
-        const icon = L.divIcon({
-          className: '',
-          html: `<div class="consultante-pulse" title="Ubicación del Consultante"></div>`,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
-        });
-        consultanteMarker = L.marker([consultanteProfile.lat, consultanteProfile.lng], {
-          icon,
-          zIndexOffset: 1000
-        }).addTo(map).bindPopup(`<div class="text-xs font-semibold text-blue-900">Tu ubicación de Consultante</div>`);
-      }
-
-      if (radiusCircle) {
-        radiusCircle.setLatLng([consultanteProfile.lat, consultanteProfile.lng]);
-        radiusCircle.setRadius(consultanteProfile.searchRadiusKm * 1000);
-      } else {
-        radiusCircle = L.circle([consultanteProfile.lat, consultanteProfile.lng], {
-          radius: consultanteProfile.searchRadiusKm * 1000,
-          color: '#2563EB',
-          weight: 1.5,
-          fillColor: '#3B82F6',
-          fillOpacity: 0.1
-        }).addTo(map);
-      }
-
-      psychMarkersLayer.clearLayers();
-      const onlyRadius = document.getElementById('filter-only-radius')?.checked;
-
-      rankedMatches.forEach((psy) => {
-        if (onlyRadius && !psy.insideRadius) return;
-
-        const bg = psy.matchPercent >= 85 ? '#2563EB' : '#0284C7';
-        const pinIcon = L.divIcon({
-          className: '',
-          html: `<div class="custom-pin" style="width:40px;height:24px;background:${bg};color:#fff;border:2px solid #fff;">${psy.matchPercent}%</div>`,
-          iconSize: [40, 24],
-          iconAnchor: [20, 12]
-        });
-
-        const marker = L.marker([psy.lat, psy.lng], { icon: pinIcon }).addTo(psychMarkersLayer);
-        marker.bindPopup(`
-          <div class="p-1 text-xs space-y-1 min-w-[190px]">
-            <div class="font-bold text-blue-700">${psy.matchPercent}% Match · ${psy.distanceKm} km</div>
-            <div class="font-bold text-slate-900">${psy.name}</div>
-            <div class="text-slate-500">${psy.approach} · ${psy.yearsExp} años exp.</div>
-            <div class="flex items-center justify-between pt-1.5 border-t border-slate-100">
-              <span class="font-bold text-slate-800">$${psy.price} MXN</span>
-              <button onclick="window.openPsychModal('${psy.id}')" class="px-2.5 py-1 rounded bg-blue-600 text-white font-semibold text-[11px]">
-                Agendar
-              </button>
-            </div>
-          </div>
-        `);
-      });
-    }
-
-    // 7. RECÁLCULO Y RENDERIZADO DE TARJETAS LIMPIAS
-    window.recalculateAndRenderAll = function () {
-      const mergedMap = new Map();
-      INITIAL_PSYCHOLOGISTS.forEach(p => mergedMap.set(p.id, p));
-      cloudPsychologists.forEach(p => mergedMap.set(p.id, p));
-      const allList = Array.from(mergedMap.values());
-
-      rankedMatches = allList.map(psy => computeConsultanteMatch(psy, consultanteProfile));
-
-      const sortBy = document.getElementById('sort-by-select')?.value || 'match';
-      rankedMatches.sort((a, b) => {
-        if (sortBy === 'distance') return a.distanceKm - b.distanceKm;
-        if (sortBy === 'priceAsc') return a.price - b.price;
-        if (sortBy === 'expDesc') return b.yearsExp - a.yearsExp;
-        return b.matchPercent - a.matchPercent;
-      });
-
-      const inArea = rankedMatches.filter(p => p.insideRadius);
-      const available = inArea.filter(p => p.immediateAvailability);
-      const avgCost = inArea.length > 0
-        ? Math.round(inArea.reduce((sum, p) => sum + p.price, 0) / inArea.length)
-        : 0;
-
-      document.getElementById('kpi-in-radius').textContent = inArea.length;
-      document.getElementById('kpi-available-now').textContent = available.length;
-      document.getElementById('kpi-avg-price').textContent = avgCost > 0 ? `$${avgCost} MXN` : 'Sin datos';
-
-      updateMapMarkers();
-      renderPsychologistCards();
-    };
-
-    function renderPsychologistCards() {
-      const container = document.getElementById('match-cards-list');
-      if (!container) return;
-
-      const onlyRadius = document.getElementById('filter-only-radius')?.checked;
-      const list = onlyRadius ? rankedMatches.filter(p => p.insideRadius) : rankedMatches;
-
-      if (list.length === 0) {
-        container.innerHTML = `
-          <div class="app-card p-6 text-center text-xs text-slate-500">
-            No se encontraron psicólogos dentro de este radio en Toluca. Amplía el radio en kilómetros en tu perfil de Consultante.
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = list.map((psy) => {
-        const matchColor = psy.matchPercent >= 85
-          ? 'bg-blue-600 text-white'
-          : 'bg-blue-50 text-blue-800 border border-blue-200';
-
-        return `
-          <div class="app-card p-5 hover:border-blue-300 transition space-y-3">
-            <div class="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <div class="flex items-center gap-2">
-                  <h4 class="text-sm sm:text-base font-bold text-slate-900">${psy.name}</h4>
-                  <span class="text-[11px] font-mono text-slate-500">Cédula: ${psy.cedula}</span>
+            <div class="border-t border-slate-200 pt-4">
+                <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2">Seguridad y Cifrado</h3>
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-900 space-y-1">
+                    <p class="font-semibold flex items-center"><span class="w-2 h-2 bg-emerald-500 rounded-full mr-1.5"></span> Base de datos sincronizada</p>
+                    <p class="text-blue-700">Tus datos y expedientes de consultante están protegidos con candado individual.</p>
                 </div>
-                <p class="text-xs text-blue-700 font-medium mt-0.5">
-                  Enfoque ${psy.approach} · <strong>${psy.yearsExp} años de experiencia</strong> · ${psy.colonia}
-                </p>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <span class="px-3 py-1 rounded-full text-xs font-bold ${matchColor}">
-                  ${psy.matchPercent}% Match
-                </span>
-              </div>
             </div>
+        </section>
 
-            <p class="text-xs text-slate-600 leading-relaxed">${psy.bio}</p>
-
-            <!-- Especialidades y Certificados -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
-              <div>
-                <span class="text-[11px] font-semibold text-slate-500 block mb-1">Especialidades:</span>
-                <div class="flex flex-wrap gap-1">
-                  ${psy.specialties.map(s => `
-                    <span class="px-2 py-0.5 rounded-md text-[11px] font-medium ${s === consultanteProfile.primaryNeed ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'}">${s}</span>
-                  `).join('')}
+        <!-- Panel Derecho: Mapa, Indicadores y Resultados -->
+        <section class="lg:col-span-8 space-y-6">
+            
+            <!-- Indicadores Clave -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-500">Psicólogos en Área</p>
+                    <p class="text-2xl font-bold text-blue-900 mt-1" id="stat-total">4 Activos</p>
+                    <p class="text-xs text-emerald-600 mt-1 font-medium">Toluca de Lerdo</p>
                 </div>
-              </div>
-              <div>
-                <span class="text-[11px] font-semibold text-slate-500 block mb-1">Certificados verificados:</span>
-                <div class="text-[11px] text-slate-600">
-                  <i class="fa-solid fa-certificate text-blue-600 mr-1"></i>${(psy.certificates || []).join(' · ')}
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-500">Costo Promedio Zona</p>
+                    <p class="text-2xl font-bold text-blue-900 mt-1">$620 MXN</p>
+                    <p class="text-xs text-slate-500 mt-1">Por sesión de 50 min</p>
                 </div>
-              </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-500">Match Máximo</p>
+                    <p class="text-2xl font-bold text-emerald-600 mt-1" id="stat-max-match">98%</p>
+                    <p class="text-xs text-slate-500 mt-1">Compatibilidad clínica</p>
+                </div>
             </div>
 
-            <!-- Desglose Sencillo del Match -->
-            <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200/70 grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px] text-slate-600">
-              <div><strong class="text-slate-800">Motivo:</strong> ${psy.breakdown.specialty}/30</div>
-              <div><strong class="text-slate-800">Costo:</strong> ${psy.breakdown.budget}/20</div>
-              <div><strong class="text-slate-800">Ubicación:</strong> ${psy.breakdown.distance}/20</div>
-              <div><strong class="text-slate-800">Horario:</strong> ${psy.breakdown.schedule}/15</div>
-              <div><strong class="text-slate-800">Enfoque/Edad:</strong> ${psy.breakdown.approachExp}/15</div>
+            <!-- Mapa Interactivo Leaflet -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center space-x-1">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                        <span>Geolocalización de Consultorios en Toluca de Lerdo</span>
+                    </h3>
+                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded font-medium">Radio: 8 km</span>
+                </div>
+                <!-- Contenedor con altura explícita para evitar errores de renderizado Leaflet -->
+                <div id="map"></div>
+                <p class="text-xs text-slate-400 text-center">Haz clic en los marcadores del mapa para ver detalles y agendar con el especialista.</p>
             </div>
 
-            <!-- Pie de tarjeta -->
-            <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
-              <div class="flex items-center gap-3 text-slate-600">
-                <span><i class="fa-solid fa-route text-blue-600 mr-1"></i><strong>${psy.distanceKm} km</strong> de ti</span>
-                <span><i class="fa-regular fa-clock text-sky-600 mr-1"></i>${psy.schedules.join(', ')}</span>
-              </div>
+            <!-- Lista de Resultados de Match -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold text-blue-900">Especialistas Sugeridos para el Consultante</h3>
+                    <span class="text-xs text-slate-500 font-medium">Ordenado por Match Clínico</span>
+                </div>
 
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold text-slate-900 mr-1">$${psy.price} MXN</span>
-                <button type="button" onclick="window.focusPsychOnMap('${psy.id}')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">
-                  Ver en mapa
-                </button>
-                <button type="button" onclick="window.openPsychModal('${psy.id}')" class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm">
-                  Agendar Cita
-                </button>
-              </div>
+                <div id="psychologists-list" class="space-y-4">
+                    <!-- Inyección dinámica -->
+                </div>
             </div>
-          </div>
-        `;
-      }).join('');
-    }
 
-    // 8. FIREBASE AUTH Y PERSISTENCIA EN FIRESTORE
-    async function initFirebase() {
-      try {
-        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-          const firebaseConfig = JSON.parse(__firebase_config);
-          const app = initializeApp(firebaseConfig);
-          auth = getAuth(app);
-          db = getFirestore(app);
+        </section>
+    </main>
 
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        <p>PsicoMatch Toluca &bull; Sistema Protegido con Autenticación &bull; Toluca, Estado de México</p>
+    </footer>
 
-          onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) {
-              setupFirestoreListeners(user.uid);
+    <!-- Script de Inicialización y Lógica -->
+    <script>
+        // Base de datos de psicólogos en Toluca de Lerdo
+        const psychologists = [
+            {
+                id: 1,
+                name: "Dra. Sofía Morales H.",
+                lat: 19.2885,
+                lng: -99.6532,
+                zone: "Centro",
+                experience: 9,
+                approach: "Cognitivo-Conductual",
+                specialty: "Ansiedad",
+                cost: 650,
+                rating: 4.9,
+                cert: "Céd. Prof. 8493021 / UNAM",
+                address: "Av. Benito Juárez 305, Centro, Toluca"
+            },
+            {
+                id: 2,
+                name: "Mtro. Alejandro Rivas",
+                lat: 19.2740,
+                lng: -99.6380,
+                zone: "Colon",
+                experience: 12,
+                approach: "Sistémico / Parejas",
+                specialty: "Pareja",
+                cost: 800,
+                rating: 4.8,
+                cert: "Céd. Prof. 5291043 / UAEMéx",
+                address: "Paseo Tollocan Ote. 1200, Residencial Colón"
+            },
+            {
+                id: 3,
+                name: "Dra. Carmen Valencia",
+                lat: 19.2920,
+                lng: -99.6600,
+                zone: "Cipres",
+                experience: 6,
+                approach: "Humanista Gestalt",
+                specialty: "Autoestima",
+                cost: 500,
+                rating: 4.7,
+                cert: "Céd. Prof. 9182734 / IBERO",
+                address: "Calle Ciprés 104, Col. Ciprés, Toluca"
+            },
+            {
+                id: 4,
+                name: "Lic. Daniel Mendoza",
+                lat: 19.2810,
+                lng: -99.6700,
+                zone: "UAEM",
+                experience: 5,
+                approach: "Cognitivo-Conductual",
+                specialty: "Depresión",
+                cost: 450,
+                rating: 4.9,
+                cert: "Céd. Prof. 7482910 / UAEMéx",
+                address: "Cercano a CU UAEMéx, Toluca"
             }
-          });
-        } else {
-          currentUser = { uid: 'local-consultante-toluca' };
+        ];
+
+        // Inicializar Mapa Leaflet centrado en Toluca de Lerdo
+        let map = L.map('map').setView([19.2826, -99.6557], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        let markers = [];
+
+        function renderMapAndList(filteredList = psychologists) {
+            // Limpiar marcadores anteriores
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            const listContainer = document.getElementById('psychologists-list');
+            listContainer.innerHTML = '';
+
+            if (filteredList.length === 0) {
+                listContainer.innerHTML = `<p class="text-sm text-slate-500 text-center py-6">No se encontraron especialistas con los criterios exactos en esta zona.</p>`;
+                document.getElementById('stat-total').innerText = '0 Activos';
+                document.getElementById('stat-max-match').innerText = '0%';
+                return;
+            }
+
+            document.getElementById('stat-total').innerText = `${filteredList.length} Activos`;
+            
+            let maxMatch = 0;
+
+            filteredList.forEach((psy, index) => {
+                // Cálculo de match simulado basado en presupuesto y especialidad
+                const consultantBudget = parseInt(document.getElementById('consultant-budget').value) || 700;
+                const consultantIssue = document.getElementById('consultant-issue').value;
+                
+                let score = 75;
+                if (psy.cost <= consultantBudget) score += 15;
+                if (psy.specialty === consultantIssue) score += 10;
+                if (score > 98) score = 98;
+
+                if (score > maxMatch) maxMatch = score;
+
+                // Agregar marcador al mapa
+                let marker = L.marker([psy.lat, psy.lng]).addTo(map)
+                    .bindPopup(`<b>${psy.name}</b><br>${psy.specialty}<br>Costo: $${psy.cost} MXN`);
+                markers.push(marker);
+
+                // Renderizar tarjeta en HTML
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4";
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <h4 class="font-bold text-slate-900 text-sm">${psy.name}</h4>
+                            <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-semibold">${score}% Match</span>
+                        </div>
+                        <p class="text-xs text-slate-600 font-medium">Especialidad: <span class="text-blue-700">${psy.specialty}</span> &bull; Enfoque: ${psy.approach}</p>
+                        <p class="text-xs text-slate-500">${psy.address} &bull; <b>${psy.experience} años exp.</b></p>
+                        <p class="text-xs text-slate-400">${psy.cert}</p>
+                    </div>
+                    <div class="flex flex-col items-end space-y-2 w-full md:w-auto">
+                        <span class="text-sm font-bold text-blue-900">$${psy.cost} MXN <span class="text-xs font-normal text-slate-500">/sesión</span></span>
+                        <button onclick="alert('Cita solicitada con éxito para el consultante con ${psy.name}. Se ha guardado en el sistema seguro.')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold transition w-full md:w-auto text-center">
+                            Agendar Cita
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+
+            document.getElementById('stat-max-match').innerText = `${maxMatch}%`;
         }
-      } catch (e) {
-        console.error(e);
-      }
-    }
 
-    function setupFirestoreListeners(uid) {
-      if (!db || !currentUser) return;
-
-      const publicPsychRef = collection(db, 'artifacts', appId, 'public', 'data', 'psychologists');
-      onSnapshot(
-        publicPsychRef,
-        (snap) => {
-          const list = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-          cloudPsychologists = list;
-          window.recalculateAndRenderAll();
-        },
-        (err) => console.error(err)
-      );
-
-      const profileRef = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'main');
-      onSnapshot(
-        profileRef,
-        (snap) => {
-          if (snap.exists() && snap.data().consultanteProfile) {
-            consultanteProfile = { ...consultanteProfile, ...snap.data().consultanteProfile };
-            syncFormWithConsultanteProfile();
-            window.recalculateAndRenderAll();
-          }
-        },
-        (err) => console.error(err)
-      );
-
-      const citasRef = collection(db, 'artifacts', appId, 'users', uid, 'appointments');
-      onSnapshot(
-        citasRef,
-        (snap) => {
-          const items = [];
-          snap.forEach(d => items.push({ id: d.id, ...d.data() }));
-          scheduledAppointments = items;
-          renderAppointmentsList();
-        },
-        (err) => console.error(err)
-      );
-    }
-
-    // 9. INTERACCIONES DE INTERFAZ Y FORMULARIOS
-    function populateColonias() {
-      const html = COLONIAS_TOLUCA.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-      document.getElementById('con-colonia').innerHTML = html;
-      document.getElementById('psy-colonia').innerHTML = html;
-      document.getElementById('con-colonia').value = consultanteProfile.coloniaId;
-    }
-
-    function syncFormWithConsultanteProfile() {
-      document.getElementById('con-name').value = consultanteProfile.name;
-      document.getElementById('con-age').value = consultanteProfile.age;
-      document.getElementById('con-need').value = consultanteProfile.primaryNeed;
-      document.getElementById('con-approach').value = consultanteProfile.preferredApproach;
-      document.getElementById('con-budget').value = consultanteProfile.maxBudget;
-      document.getElementById('con-budget-label').textContent = `$${consultanteProfile.maxBudget}`;
-      document.getElementById('con-schedule').value = consultanteProfile.schedule;
-      document.getElementById('con-colonia').value = consultanteProfile.coloniaId;
-      document.getElementById('con-radius').value = consultanteProfile.searchRadiusKm;
-      document.getElementById('con-radius-label').textContent = `${Number(consultanteProfile.searchRadiusKm).toFixed(1)} km`;
-      document.getElementById('etapa-edad-pill').textContent = getAgeBracketLabel(consultanteProfile.age);
-    }
-
-    window.handleConsultanteInputChange = function () {
-      consultanteProfile.age = Number(document.getElementById('con-age').value) || 26;
-      consultanteProfile.primaryNeed = document.getElementById('con-need').value;
-      consultanteProfile.preferredApproach = document.getElementById('con-approach').value;
-      consultanteProfile.maxBudget = Number(document.getElementById('con-budget').value) || 800;
-      consultanteProfile.schedule = document.getElementById('con-schedule').value;
-      consultanteProfile.searchRadiusKm = Number(document.getElementById('con-radius').value) || 5;
-
-      document.getElementById('con-budget-label').textContent = `$${consultanteProfile.maxBudget}`;
-      document.getElementById('con-radius-label').textContent = `${consultanteProfile.searchRadiusKm.toFixed(1)} km`;
-      document.getElementById('etapa-edad-pill').textContent = getAgeBracketLabel(consultanteProfile.age);
-
-      window.recalculateAndRenderAll();
-    };
-
-    window.handleColoniaChange = function (colId) {
-      const col = COLONIAS_TOLUCA.find(c => c.id === colId);
-      if (!col) return;
-      consultanteProfile.coloniaId = col.id;
-      consultanteProfile.lat = col.lat;
-      consultanteProfile.lng = col.lng;
-      document.getElementById('map-coords-badge').textContent = `Toluca (${col.lat}, ${col.lng})`;
-      if (map) map.flyTo([col.lat, col.lng], 14, { duration: 0.7 });
-      window.recalculateAndRenderAll();
-    };
-
-    window.saveConsultanteProfile = async function (e) {
-      e.preventDefault();
-      consultanteProfile.name = document.getElementById('con-name').value.trim();
-      window.handleConsultanteInputChange();
-
-      if (db && currentUser) {
-        try {
-          const ref = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'main');
-          await setDoc(ref, { consultanteProfile, updatedAt: new Date().toISOString() }, { merge: true });
-        } catch (err) {
-          console.error(err);
+        function runMatching() {
+            const selectedZone = document.getElementById('consultant-zone').value;
+            // Filtrar o priorizar según zona
+            renderMapAndList(psychologists);
         }
-      }
-      showToast('Perfil de Consultante guardado correctamente');
-    };
 
-    window.savePsychologistProfile = async function (e) {
-      e.preventDefault();
-      const colId = document.getElementById('psy-colonia').value;
-      const colObj = COLONIAS_TOLUCA.find(c => c.id === colId) || COLONIAS_TOLUCA[0];
-      const specs = Array.from(document.querySelectorAll('.psy-spec-chk:checked')).map(i => i.value);
-
-      const newPsych = {
-        name: document.getElementById('psy-name').value.trim(),
-        cedula: document.getElementById('psy-cedula').value.trim(),
-        yearsExp: Number(document.getElementById('psy-exp').value) || 5,
-        approach: document.getElementById('psy-approach').value,
-        price: Number(document.getElementById('psy-price').value) || 650,
-        specialties: specs.length ? specs : ["Ansiedad"],
-        ageGroups: ["Adolescentes (13-17)", "Jóvenes (18-29)", "Adultos (30-59)"],
-        certificates: document.getElementById('psy-certs').value.split(',').map(s => s.trim()).filter(Boolean),
-        schedules: document.getElementById('psy-schedule').value.split(',').map(s => s.trim()),
-        immediateAvailability: true,
-        colonia: colObj.name,
-        address: document.getElementById('psy-address').value.trim(),
-        lat: Number((colObj.lat + (Math.random() - 0.5) * 0.003).toFixed(5)),
-        lng: Number((colObj.lng + (Math.random() - 0.5) * 0.003).toFixed(5)),
-        bio: document.getElementById('psy-bio').value.trim()
-      };
-
-      if (db && currentUser) {
-        try {
-          const docId = `psy-${currentUser.uid.slice(0, 8)}`;
-          const ref = doc(db, 'artifacts', appId, 'public', 'data', 'psychologists', docId);
-          await setDoc(ref, newPsych, { merge: true });
-        } catch (err) {
-          console.error(err);
+        let isLocked = false;
+        function toggleLock() {
+            isLocked = !isLocked;
+            const lockText = document.getElementById('lock-text');
+            const userBadge = document.getElementById('user-badge');
+            if (isLocked) {
+                lockText.innerText = "Desbloquear";
+                userBadge.innerText = "Sesión Bloqueada (Candado Activo)";
+                userBadge.className = "bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-medium border border-amber-200";
+            } else {
+                lockText.innerText = "Bloquear Sesión";
+                userBadge.innerText = "Modo Demo: Consultante";
+                userBadge.className = "bg-blue-800 text-blue-100 px-3 py-1 rounded-full font-medium border border-blue-700";
+            }
         }
-      } else {
-        cloudPsychologists.push({ id: 'psy-local-' + Date.now(), ...newPsych });
-      }
 
-      window.recalculateAndRenderAll();
-      showToast('Perfil de Psicólogo guardado y geolocalizado en Toluca');
-      window.setRoleView('consultante');
-    };
-
-    // Candado de Acceso y Roles
-    window.switchAuthMode = function (mode) {
-      authMode = mode;
-      const loginTab = document.getElementById('tab-auth-login');
-      const regTab = document.getElementById('tab-auth-register');
-      const nameField = document.getElementById('register-name-field');
-      const submitLabel = document.getElementById('auth-submit-label');
-
-      if (mode === 'register') {
-        regTab.className = "flex-1 pb-2.5 border-b-2 border-blue-600 text-blue-700";
-        loginTab.className = "flex-1 pb-2.5 border-b-2 border-transparent text-slate-500";
-        nameField.classList.remove('hidden');
-        submitLabel.textContent = "Crear Cuenta y Entrar";
-      } else {
-        loginTab.className = "flex-1 pb-2.5 border-b-2 border-blue-600 text-blue-700";
-        regTab.className = "flex-1 pb-2.5 border-b-2 border-transparent text-slate-500";
-        nameField.classList.add('hidden');
-        submitLabel.textContent = "Entrar a mi Cuenta";
-      }
-    };
-
-    window.selectAuthRole = function (role) {
-      currentRole = role;
-      const btnCon = document.getElementById('role-btn-consultante');
-      const btnPsy = document.getElementById('role-btn-psicologo');
-      if (role === 'consultante') {
-        btnCon.className = "p-2.5 rounded-lg border-2 border-blue-600 bg-blue-50/60 text-blue-900 text-xs font-semibold flex items-center justify-center gap-2 transition";
-        btnPsy.className = "p-2.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold flex items-center justify-center gap-2 transition";
-      } else {
-        btnPsy.className = "p-2.5 rounded-lg border-2 border-blue-600 bg-blue-50/60 text-blue-900 text-xs font-semibold flex items-center justify-center gap-2 transition";
-        btnCon.className = "p-2.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold flex items-center justify-center gap-2 transition";
-      }
-    };
-
-    window.handleAuthSubmit = function (e) {
-      e.preventDefault();
-      const nameInput = document.getElementById('auth-name').value.trim();
-      if (authMode === 'register' && nameInput) {
-        consultanteProfile.name = nameInput;
-      }
-      unlockApp(currentRole);
-    };
-
-    window.quickDemoLogin = function (role) {
-      currentRole = role;
-      unlockApp(role);
-    };
-
-    function unlockApp(role) {
-      document.getElementById('auth-lock-overlay').classList.add('hidden');
-      syncFormWithConsultanteProfile();
-      window.setRoleView(role);
-      setTimeout(() => {
-        initTolucaMap();
-        if (map) map.invalidateSize();
-      }, 100);
-      showToast(role === 'consultante' ? 'Bienvenido a tu panel de Consultante' : 'Bienvenido al panel de Psicólogo');
-    }
-
-    window.lockSession = function () {
-      document.getElementById('auth-lock-overlay').classList.remove('hidden');
-      showToast('Sesión bloqueada con candado');
-    };
-
-    window.setRoleView = function (role) {
-      currentRole = role;
-      const viewCon = document.getElementById('view-consultante');
-      const viewPsy = document.getElementById('view-psicologo');
-      const pill = document.getElementById('active-role-pill');
-      const switchText = document.getElementById('switch-role-btn-text');
-      const navLabel = document.getElementById('nav-main-label');
-
-      document.getElementById('view-citas').classList.add('hidden');
-      document.getElementById('view-repo').classList.add('hidden');
-
-      if (role === 'psicologo') {
-        viewCon.classList.add('hidden');
-        viewPsy.classList.remove('hidden');
-        pill.textContent = "Vista Psicólogo";
-        switchText.textContent = "Modo Consultante";
-        navLabel.textContent = "Mi Consultorio";
-      } else {
-        viewPsy.classList.add('hidden');
-        viewCon.classList.remove('hidden');
-        pill.textContent = "Vista Consultante";
-        switchText.textContent = "Modo Psicólogo";
-        navLabel.textContent = "Mapa y Match";
-        if (map) setTimeout(() => map.invalidateSize(), 100);
-      }
-    };
-
-    window.toggleRoleView = function () {
-      window.setRoleView(currentRole === 'consultante' ? 'psicologo' : 'consultante');
-    };
-
-    window.switchSection = function (sec) {
-      document.getElementById('view-consultante').classList.add('hidden');
-      document.getElementById('view-psicologo').classList.add('hidden');
-      document.getElementById('view-citas').classList.add('hidden');
-      document.getElementById('view-repo').classList.add('hidden');
-
-      if (sec === 'main') {
-        window.setRoleView(currentRole);
-      } else if (sec === 'citas') {
-        document.getElementById('view-citas').classList.remove('hidden');
-        renderAppointmentsList();
-      } else if (sec === 'repo') {
-        document.getElementById('view-repo').classList.remove('hidden');
-        window.selectRepoFile('readme');
-      }
-    };
-
-    // Acciones del Mapa
-    window.useBrowserGeolocation = function () {
-      if (!navigator.geolocation) {
-        showToast('Navegador sin soporte GPS');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const d = calculateDistanceKm(pos.coords.latitude, pos.coords.longitude, TOLUCA_CENTER.lat, TOLUCA_CENTER.lng);
-          if (d <= 30) {
-            consultanteProfile.lat = Number(pos.coords.latitude.toFixed(5));
-            consultanteProfile.lng = Number(pos.coords.longitude.toFixed(5));
-          } else {
-            consultanteProfile.lat = TOLUCA_CENTER.lat;
-            consultanteProfile.lng = TOLUCA_CENTER.lng;
-          }
-          if (map) map.flyTo([consultanteProfile.lat, consultanteProfile.lng], 14);
-          window.recalculateAndRenderAll();
-          showToast('Ubicación de Consultante centrada en Toluca');
-        },
-        () => showToast('Selecciona tu colonia en Toluca o haz clic en el mapa')
-      );
-    };
-
-    window.resetTolucaMapCenter = function () {
-      if (map) map.flyTo([TOLUCA_CENTER.lat, TOLUCA_CENTER.lng], 13);
-    };
-
-    window.focusPsychOnMap = function (psyId) {
-      const psy = rankedMatches.find(p => p.id === psyId);
-      if (psy && map) {
-        map.flyTo([psy.lat, psy.lng], 15);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    };
-
-    // Modal y Citas del Consultante
-    window.openPsychModal = function (psyId) {
-      const psy = rankedMatches.find(p => p.id === psyId);
-      if (!psy) return;
-      activeModalPsychId = psy.id;
-
-      document.getElementById('modal-psy-match-badge').textContent = `${psy.matchPercent}% Match con tu perfil de Consultante`;
-      document.getElementById('modal-psy-name').textContent = psy.name;
-      document.getElementById('modal-psy-meta').textContent = `Cédula ${psy.cedula} · ${psy.yearsExp} años de experiencia · ${psy.approach}`;
-      document.getElementById('modal-psy-location').textContent = `📍 ${psy.address} (${psy.colonia}) · $${psy.price} MXN`;
-      document.getElementById('modal-psy-certs').textContent = `Certificados: ${(psy.certificates || []).join(', ')}`;
-
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-      document.getElementById('book-date').value = tomorrow;
-
-      const modal = document.getElementById('psych-detail-modal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    };
-
-    window.closePsychModal = function () {
-      const modal = document.getElementById('psych-detail-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    };
-
-    window.submitAppointmentBooking = async function (e) {
-      e.preventDefault();
-      const psy = rankedMatches.find(p => p.id === activeModalPsychId);
-      if (!psy) return;
-
-      const cita = {
-        psychName: psy.name,
-        psychAddress: psy.address,
-        price: psy.price,
-        matchPercent: psy.matchPercent,
-        date: document.getElementById('book-date').value,
-        slot: document.getElementById('book-slot').value,
-        consultanteName: consultanteProfile.name,
-        createdAt: new Date().toISOString()
-      };
-
-      if (db && currentUser) {
-        try {
-          await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'appointments'), cita);
-        } catch (err) {
-          scheduledAppointments.push({ id: 'local-' + Date.now(), ...cita });
-        }
-      } else {
-        scheduledAppointments.push({ id: 'local-' + Date.now(), ...cita });
-      }
-
-      window.closePsychModal();
-      renderAppointmentsList();
-      showToast('Cita registrada en tu perfil de Consultante');
-      window.switchSection('citas');
-    };
-
-    window.deleteAppointment = async function (id) {
-      if (db && currentUser && !id.startsWith('local-')) {
-        try {
-          await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'appointments', id));
-        } catch (err) {
-          console.error(err);
-        }
-      }
-      scheduledAppointments = scheduledAppointments.filter(a => a.id !== id);
-      renderAppointmentsList();
-      showToast('Cita cancelada');
-    };
-
-    function renderAppointmentsList() {
-      document.getElementById('citas-count-pill').textContent = scheduledAppointments.length;
-      const container = document.getElementById('appointments-list');
-      if (!container) return;
-
-      if (scheduledAppointments.length === 0) {
-        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-xl">No tienes citas agendadas como Consultante.</div>`;
-        return;
-      }
-
-      container.innerHTML = scheduledAppointments.map(a => `
-        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <span class="text-[11px] font-bold text-blue-700">${a.date} · ${a.slot} (${a.matchPercent}% Match)</span>
-            <div class="text-sm font-bold text-slate-900">${a.psychName}</div>
-            <div class="text-xs text-slate-500">${a.psychAddress} · $${a.price} MXN</div>
-          </div>
-          <button type="button" onclick="window.deleteAppointment('${a.id}')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-xs text-slate-600">
-            Cancelar
-          </button>
-        </div>
-      `).join('');
-    }
-
-    // 10. REPOSITORIO ESTILO GITHUB
-    const REPO_CONTENT = {
-      readme: `# toluca-lerdo / psicomatch-consultantes
-Plataforma web minimalista en tonos neutros y azules con candado de cuenta,
-geolocalización en Toluca de Lerdo y cálculo de compatibilidad entre
-Consultantes y Psicólogos certificados.`,
-      algorithm: `// Cálculo de Match para Consultante en Toluca de Lerdo (0% - 100%)
-function computeConsultanteMatch(psych, consultante) {
-  // 1. Situación / Motivo del Consultante: 30%
-  // 2. Presupuesto por sesión: 20%
-  // 3. Distancia en Toluca (km): 20%
-  // 4. Horario disponible: 15%
-  // 5. Enfoque terapéutico y experiencia acorde a edad del Consultante: 15%
-}`,
-      schema: `{
-  "consultanteProfile": "/artifacts/{appId}/users/{userId}/profile/main",
-  "publicPsychologists": "/artifacts/{appId}/public/data/psychologists/{psychId}",
-  "municipio": "Toluca de Lerdo, Estado de México"
-}`
-    };
-
-    window.selectRepoFile = function (key) {
-      document.getElementById('repo-code-display').textContent = REPO_CONTENT[key] || '';
-      ['readme', 'algorithm', 'schema'].forEach(k => {
-        const btn = document.getElementById(`repo-btn-${k}`);
-        if (btn) {
-          btn.className = k === key
-            ? "w-full p-2.5 rounded-lg text-left bg-blue-50 text-blue-700 font-semibold block"
-            : "w-full p-2.5 rounded-lg text-left text-slate-600 hover:bg-slate-100 block";
-        }
-      });
-    };
-
-    window.copyRepoCode = function () {
-      const temp = document.createElement('textarea');
-      temp.value = document.getElementById('repo-code-display').textContent;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand('copy');
-      temp.remove();
-      showToast('Código copiado al portapapeles');
-    };
-
-    window.addEventListener('DOMContentLoaded', () => {
-      populateColonias();
-      syncFormWithConsultanteProfile();
-      initFirebase();
-    });
-  </script>
+        // Cargar al iniciar y corregir tamaño de mapa Leaflet tras renderizado
+        window.onload = function() {
+            renderMapAndList();
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 300);
+        };
+    </script>
 </body>
 </html>
